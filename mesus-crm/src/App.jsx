@@ -153,34 +153,36 @@ function App() {
 
     // 4. Fluxo de Login
     const handleLogin = async () => {
-        if (!accessKey) return;
-        setLoading(true);
-        setError(null);
-        clearMemoryData();
+    if (!accessKey) return;
 
-        if (accessKey === AGENCY_MASTER_KEY) {
-            setIsAgencyAdmin(true);
-            setLoggedClient({ id: 'admin', name: 'Mesus Media Master' });
-            setCurrentView('admin');
-            setLoading(false);
-            return;
-        }
+    setLoading(true);
+    setError(null);
+    clearMemoryData();
 
-        const { data, error: loginErr } = await supabase
-            .from('clientes')
-            .select('*')
-            .eq('id', accessKey)
-            .single();
+    const { data, error } = await supabase
+        .from('clientes')
+        .select('*')
+        .eq('id', accessKey)
+        .single();
 
-        if (data) {
-            setLoggedClient(data);
-            setIsAgencyAdmin(false);
-            setCurrentView('kanban');
-        } else {
-            setError("Chave de acesso inválida.");
-        }
+    if (error || !data) {
+        setError("Chave de acesso inválida.");
         setLoading(false);
-    };
+        return;
+    }
+
+    setLoggedClient(data);
+
+    if (data.is_admin === true) {
+        setIsAgencyAdmin(true);
+        setCurrentView('admin');
+    } else {
+        setIsAgencyAdmin(false);
+        setCurrentView('kanban');
+    }
+
+    setLoading(false);
+};
 
     // 5. Admin Actions
     useEffect(() => {
