@@ -1,0 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body { 
+    font-family: 'Inter', sans-serif; 
+    background-color: #0d1117; 
+    color: #c9d1d9;
+    margin: 0;
+    overflow-x: hidden;
+    user-select: none;
+}
+
+/* Scrollbar Premium */
+.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 8px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: #0d1117; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #30363d; border-radius: 10px; border: 2px solid #0d1117; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #484f58; }
+
+input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
+
+@keyframes pulse-green {
+    0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+.status-active {
+    animation: pulse-green 2s infinite;
+}
+.glass-header {
+    background: rgba(22, 27, 34, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.grab-scroll { cursor: grab; }
+.grab-scroll:active { cursor: grabbing; }
