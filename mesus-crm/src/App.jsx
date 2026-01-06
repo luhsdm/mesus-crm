@@ -152,37 +152,42 @@ function App() {
     }, [loggedClient, fetchLeads]);
 
     // 4. Fluxo de Login
+    // 4. Fluxo de Login
     const handleLogin = async () => {
-    if (!accessKey) return;
+        if (!accessKey) return;
 
-    setLoading(true);
-    setError(null);
-    clearMemoryData();
+        setLoading(true);
+        setError(null);
+        clearMemoryData();
 
-    const { data, error } = await supabase
-        .from('clientes')
-        .select('*')
-        .eq('id', accessKey)
-        .single();
+        const { data, error } = await supabase
+            .from('clientes')
+            .select('*')
+            .eq('id', accessKey)
+            .single();
 
-    if (error || !data) {
-        setError("Chave de acesso inválida.");
+        if (error || !data) {
+            setError("Chave de acesso inválida.");
+            setLoading(false);
+            return;
+        }
+
+        setLoggedClient(data);
+
+        // --- CORREÇÃO AQUI ---
+        // Verifica a coluna 'role' (conforme sua print) OU a flag is_admin
+        const isAdminUser = data.role === 'admin' || data.is_admin === true;
+
+        if (isAdminUser) {
+            setIsAgencyAdmin(true);
+            setCurrentView('admin'); // Força a visualização para Admin
+        } else {
+            setIsAgencyAdmin(false);
+            setCurrentView('kanban');
+        }
+
         setLoading(false);
-        return;
-    }
-
-    setLoggedClient(data);
-
-    if (data.is_admin === true) {
-        setIsAgencyAdmin(true);
-        setCurrentView('admin');
-    } else {
-        setIsAgencyAdmin(false);
-        setCurrentView('kanban');
-    }
-
-    setLoading(false);
-};
+    };
 
     // 5. Admin Actions
     useEffect(() => {
