@@ -21,6 +21,9 @@ function App() {
     const [syncStatusMsg, setSyncStatusMsg] = useState('');
     const [error, setError] = useState(null);
     const [editingLead, setEditingLead] = useState(null);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+
 
     const [dateRange, setDateRange] = useState(() => {
         const end = new Date();
@@ -154,40 +157,40 @@ function App() {
     // 4. Fluxo de Login
     // 4. Fluxo de Login
     const handleLogin = async () => {
-        if (!accessKey) return;
+  setLoading(true);
+  setError(null);
 
-        setLoading(true);
-        setError(null);
-        clearMemoryData();
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  });
 
-        const { data, error } = await supabase
-            .from('clientes')
-            .select('*')
-            .eq('id', accessKey)
-            .single();
+  if (error) {
+    setError("Email ou senha inválidos");
+    setLoading(false);
+    return;
+  }
 
-        if (error || !data) {
-            setError("Chave de acesso inválida.");
-            setLoading(false);
-            return;
-        }
+  const user = data.user;
 
-        setLoggedClient(data);
+  const { data: client, error: clientError } = await supabase
+    .from('clientes')
+    .select('*')
+    .eq('user_id', user.id)
+    .single();
 
-        // --- CORREÇÃO AQUI ---
-        // Verifica a coluna 'role' (conforme sua print) OU a flag is_admin
-        const isAdminUser = data.role === 'admin' || data.is_admin === true;
+  if (clientError || !client) {
+    setError("Usuário sem acesso ao sistema");
+    setLoading(false);
+    return;
+  }
 
-        if (isAdminUser) {
-            setIsAgencyAdmin(true);
-            setCurrentView('admin'); // Força a visualização para Admin
-        } else {
-            setIsAgencyAdmin(false);
-            setCurrentView('kanban');
-        }
+  setLoggedClient(client);
+  setIsAgencyAdmin(client.is_admin === true);
+  setCurrentView(client.is_admin ? 'admin' : 'kanban');
+  setLoading(false);
+};
 
-        setLoading(false);
-    };
 
     // 5. Admin Actions
     useEffect(() => {
@@ -253,7 +256,13 @@ function App() {
     if (loading) return <Loading />;
 
     if (!loggedClient) {
-        return <Login accessKey={accessKey} setAccessKey={setAccessKey} handleLogin={handleLogin} error={error} />;
+        return <Login
+  email={email}
+  setEmail={setEmail}
+  password={password}
+  setPassword={setPassword}
+  handleLogin={handleLogin}
+  error={error}/>;
     }
 
     return (
