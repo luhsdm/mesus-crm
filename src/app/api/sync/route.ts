@@ -175,7 +175,7 @@ if (insertError) {
   throw insertError;
 }
 
-const insertedCount = data ? data.length : dedupedLeads.length;
+const insertedCount = (data as unknown as any[])?.length ?? dedupedLeads.length;
 console.log(`[SYNC] ✅ ${insertedCount} leads sincronizados com sucesso (upsert)`);
 
 return NextResponse.json({
