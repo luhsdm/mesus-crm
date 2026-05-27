@@ -2,8 +2,8 @@
 
 export const dynamic = 'force-dynamic';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Search, RefreshCw, BarChart3, Table2, Bug, Users, ArrowLeft, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { Search, RefreshCw, BarChart3, Table2, Bug, Users, ArrowLeft, TrendingUp, ChevronDown } from 'lucide-react';
 
 const CLIENTES = [
   { id: 'anna-hof', nome: 'Dra Anna HOF', sheet_id: '1N2oAsy3PJud__z9MBSFrX9wr1AVfw_b-X-YpgDHIdkQ' },
@@ -223,7 +223,9 @@ export default function VisualizadorPage() {
   const [tab, setTab] = useState<Tab>('tabela');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedYear, setSelectedYear] = useState<string>('Todos');
-  const [selectedMonth, setSelectedMonth] = useState<string>('Todos');
+  const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
+  const [monthOpen, setMonthOpen] = useState(false);
+  const monthRef = useRef<HTMLDivElement>(null);
   const [showDebug, setShowDebug] = useState(false);
   const [error, setError] = useState('');
   const [editSidId, setEditSidId] = useState<string | null>(null);
@@ -268,6 +270,17 @@ export default function VisualizadorPage() {
       fetchData(selectedCliente.sheet_id);
     }
   }, [selectedCliente, fetchData]);
+
+  useEffect(() => {
+    if (!monthOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (monthRef.current && !monthRef.current.contains(e.target as Node)) {
+        setMonthOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [monthOpen]);
 
   const handleSelectCliente = (c: (typeof CLIENTES)[0]) => {
     if (!c.sheet_id) {
@@ -321,10 +334,13 @@ export default function VisualizadorPage() {
       if (selectedYear !== 'Todos') {
         if (extractYear(r, colMap) !== selectedYear) return false;
       }
-      if (selectedMonth !== 'Todos' && mesIdx !== undefined) {
+      if (selectedMonths.length > 0 && mesIdx !== undefined) {
         const mesVal = (r[mesIdx] || '').toLowerCase().trim();
-        const targetAbbr = MONTHS[parseInt(selectedMonth) - 1].substring(0, 3).toLowerCase();
-        if (!mesVal.startsWith(targetAbbr)) return false;
+        const monthMatch = selectedMonths.some(m => {
+          const targetAbbr = MONTHS[parseInt(m) - 1].substring(0, 3).toLowerCase();
+          return mesVal.startsWith(targetAbbr);
+        });
+        if (!monthMatch) return false;
       }
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
@@ -332,7 +348,7 @@ export default function VisualizadorPage() {
       }
       return true;
     });
-  }, [rows, col, colMap, selectedYear, selectedMonth, searchTerm]);
+  }, [rows, col, colMap, selectedYear, selectedMonths, searchTerm]);
 
   const dimensionData = useMemo(() => {
     const dimNames = ['Campanha', 'Conjunto', 'Anúncio', 'Criativo', 'SourceID', 'Plataforma'];
@@ -590,11 +606,34 @@ export default function VisualizadorPage() {
                 {years.map(y => <option key={y} value={y}>{y}</option>)}
               </select>
 
-              <select value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}
-                className="bg-[#111318] border border-[#30363d] text-[#e6edf3] rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:border-[#5c54ed]">
-                <option value="Todos">Todos os meses</option>
-                {MONTHS.map((m, i) => <option key={i} value={String(i + 1)}>{m}</option>)}
-              </select>
+              <div className="relative" ref={monthRef}>
+                <button onClick={() => setMonthOpen(!monthOpen)}
+                  className="bg-[#111318] border border-[#30363d] text-[#e6edf3] rounded-xl px-4 py-2.5 text-xs font-bold outline-none focus:border-[#5c54ed] transition-all flex items-center gap-2 whitespace-nowrap">
+                  {selectedMonths.length === 0 ? 'Todos os meses' : `${selectedMonths.length} mês${selectedMonths.length > 1 ? 'es' : ''}`}
+                  <ChevronDown className="w-3 h-3" />
+                </button>
+                {monthOpen && (
+                  <div className="absolute top-full mt-1 left-0 bg-[#161b22] border border-[#30363d] rounded-xl p-2 z-50 min-w-[180px] shadow-2xl">
+                    <label className="flex items-center gap-2 px-3 py-2 text-xs hover:bg-[#1c2333] rounded-lg cursor-pointer transition-colors">
+                      <input type="checkbox" checked={selectedMonths.length === 0}
+                        onChange={() => setSelectedMonths([])} className="accent-[#5c54ed]" />
+                      Todos os meses
+                    </label>
+                    <div className="border-t border-[#21262d] my-1" />
+                    {MONTHS.map((m, i) => (
+                      <label key={i} className="flex items-center gap-2 px-3 py-2 text-xs hover:bg-[#1c2333] rounded-lg cursor-pointer transition-colors">
+                        <input type="checkbox" checked={selectedMonths.includes(String(i + 1))}
+                          onChange={() => setSelectedMonths(prev =>
+                            prev.includes(String(i + 1))
+                              ? prev.filter(x => x !== String(i + 1))
+                              : [...prev, String(i + 1)]
+                          )} className="accent-[#5c54ed]" />
+                        {m}
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
 
               <div className="relative flex-1 max-w-xs">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#7d8590]" />
@@ -643,7 +682,7 @@ export default function VisualizadorPage() {
                 <div className="mt-3 space-y-1 text-[10px] font-mono">
                   <p className="text-yellow-400">Anos detectados: {years.length > 0 ? years.join(', ') : 'nenhum'}</p>
                   <p className="text-yellow-400">Total linhas: {rows.length} | Filtradas: {filteredRows.length}</p>
-                  <p className="text-yellow-400">selectedYear: {selectedYear} | selectedMonth: {selectedMonth}</p>
+                  <p className="text-yellow-400">selectedYear: {selectedYear} | selectedMonths: {selectedMonths.length > 0 ? selectedMonths.join(', ') : 'Todos'}</p>
                   {rows.slice(0, 3).map((r, i) => {
                     const di = col('Data'); const mi = col('Mes');
                     return (
